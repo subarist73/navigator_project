@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html>
+<head>
+    
+    <meta http-equiv="content-type" content="text/html; charset=UTF-8" />
+    <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.3/dist/leaflet.js"></script>
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Leaflet.awesome-markers/2.0.2/leaflet.awesome-markers.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.3/dist/leaflet.css"/>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/css/bootstrap.min.css"/>
+    <link rel="stylesheet" href="https://netdna.bootstrapcdn.com/bootstrap/3.0.0/css/bootstrap-glyphicons.css"/>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.2.0/css/all.min.css"/>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/Leaflet.awesome-markers/2.0.2/leaflet.awesome-markers.css"/>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/python-visualization/folium/folium/templates/leaflet.awesome.rotate.min.css"/>
+    
+            <meta name="viewport" content="width=device-width,
+                initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+            <style>
+                #map_ae813b0672b78029f4dbd6318550eedd {
+                    position: relative;
+                    width: 100.0%;
+                    height: 100.0%;
+                    left: 0.0%;
+                    top: 0.0%;
+                }
+                .leaflet-container { font-size: 1rem; }
+            </style>
+
+            <style>html, body {
+                width: 100%;
+                height: 100%;
+                margin: 0;
+                padding: 0;
+            }
+            </style>
+
+            <style>#map {
+                position:absolute;
+                top:0;
+                bottom:0;
+                right:0;
+                left:0;
+                }
+            </style>
+
+            <script>
+                L_NO_TOUCH = false;
+                L_DISABLE_3D = false;
+            </script>
+
+        
+</head>
+<body>
+    
+    
+            <div class="folium-map" id="map_ae813b0672b78029f4dbd6318550eedd" ></div>
+        
+</body>
+<script>
+    
+    
+            var map_ae813b0672b78029f4dbd6318550eedd = L.map(
+                "map_ae813b0672b78029f4dbd6318550eedd",
+                {
+                    center: [54.36243575, 48.55647635],
+                    crs: L.CRS.EPSG3857,
+                    ...{
+  "zoom": 13,
+  "zoomControl": true,
+  "preferCanvas": false,
+}
+
+                }
+            );
+
+            
+
+        
+    
+            var tile_layer_156ce43976c17173a28cf35a291aaa1c = L.tileLayer(
+                "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+                {
+  "minZoom": 0,
+  "maxZoom": 19,
+  "maxNativeZoom": 19,
+  "noWrap": false,
+  "attribution": "\u0026copy; \u003ca href=\"https://www.openstreetmap.org/copyright\"\u003eOpenStreetMap\u003c/a\u003e contributors",
+  "subdomains": "abc",
+  "detectRetina": false,
+  "tms": false,
+  "opacity": 1,
+}
+
+            );
+        
+    
+            tile_layer_156ce43976c17173a28cf35a291aaa1c.addTo(map_ae813b0672b78029f4dbd6318550eedd);
+        
+    
+            var marker_83795e98bd3b13d6992aeae41ad0efc9 = L.marker(
+                [54.3684744, 48.5634307],
+                {
+}
+            ).addTo(map_ae813b0672b78029f4dbd6318550eedd);
+        
+    
+            var icon_232138fbcb28bb4482b7e4d0dbd34f2b = L.AwesomeMarkers.icon(
+                {
+  "markerColor": "green",
+  "iconColor": "white",
+  "icon": "info-sign",
+  "prefix": "glyphicon",
+  "extraClasses": "fa-rotate-0",
+}
+            );
+        
+    
+        var popup_12b087baf9f8174f7c522e5d194acf98 = L.popup({
+  "maxWidth": "100%",
+});
+
+        
+            
+                var html_32e0aecc3c7927f3a328f90159aca316 = $(`<div id="html_32e0aecc3c7927f3a328f90159aca316" style="width: 100.0%; height: 100.0%;">A: Берёзовый проезд, Заволжский район, Ульяновск, городской округ Ульяновск, Ульяновская область, Приволжский федеральный округ, 432051, Россия</div>`)[0];
+                popup_12b087baf9f8174f7c522e5d194acf98.setContent(html_32e0aecc3c7927f3a328f90159aca316);
+            
+        
+
+        marker_83795e98bd3b13d6992aeae41ad0efc9.bindPopup(popup_12b087baf9f8174f7c522e5d194acf98)
+        ;
+
+        
+    
+    
+                marker_83795e98bd3b13d6992aeae41ad0efc9.setIcon(icon_232138fbcb28bb4482b7e4d0dbd34f2b);
+            
+    
+            var marker_12398a0069c65f012fb5616be15e90a1 = L.marker(
+                [54.3563971, 48.549522],
+                {
+}
+            ).addTo(map_ae813b0672b78029f4dbd6318550eedd);
+        
+    
+            var icon_9120c8b2ce2e7541f4335aafb3cef92e = L.AwesomeMarkers.icon(
+                {
+  "markerColor": "red",
+  "iconColor": "white",
+  "icon": "info-sign",
+  "prefix": "glyphicon",
+  "extraClasses": "fa-rotate-0",
+}
+            );
+        
+    
+        var popup_db3e215844f73ebb47049224af7e7af1 = L.popup({
+  "maxWidth": "100%",
+});
+
+        
+            
+                var html_afa4ea6c56a52bc436fe1ba80392c953 = $(`<div id="html_afa4ea6c56a52bc436fe1ba80392c953" style="width: 100.0%; height: 100.0%;">B: улица Котовского, Верхняя Терраса, Заволжский район, Ульяновск, городской округ Ульяновск, Ульяновская область, Приволжский федеральный округ, 432010, Россия</div>`)[0];
+                popup_db3e215844f73ebb47049224af7e7af1.setContent(html_afa4ea6c56a52bc436fe1ba80392c953);
+            
+        
+
+        marker_12398a0069c65f012fb5616be15e90a1.bindPopup(popup_db3e215844f73ebb47049224af7e7af1)
+        ;
+
+        
+    
+    
+                marker_12398a0069c65f012fb5616be15e90a1.setIcon(icon_9120c8b2ce2e7541f4335aafb3cef92e);
+            
+    
+            var poly_line_0923cc730266479f6930f140d6125441 = L.polyline(
+                [[54.368474, 48.563431], [54.370126, 48.566344], [54.37007, 48.566434], [54.370013, 48.566554], [54.369965, 48.56664], [54.369951, 48.566654], [54.369659, 48.567141], [54.369431, 48.56752], [54.369205, 48.567825], [54.369143, 48.567906], [54.369121, 48.567865], [54.369094, 48.56784], [54.369059, 48.56783], [54.36902, 48.567835], [54.368987, 48.567851], [54.368964, 48.567871], [54.368634, 48.568284], [54.368594, 48.568334], [54.36763, 48.569571], [54.367513, 48.569718], [54.367272, 48.570019], [54.367048, 48.570312], [54.366381, 48.571183], [54.366142, 48.571492], [54.365529, 48.572283], [54.365342, 48.571857], [54.364863, 48.57076], [54.364636, 48.570242], [54.364298, 48.569473], [54.3641, 48.569025], [54.363935, 48.568648], [54.36356, 48.567798], [54.363239, 48.567076], [54.362873, 48.566225], [54.362849, 48.566168], [54.362801, 48.566055], [54.362768, 48.565979], [54.362722, 48.565875], [54.362238, 48.564804], [54.362025, 48.564411], [54.361701, 48.56392], [54.36112, 48.563127], [54.360922, 48.562856], [54.359647, 48.561229], [54.358908, 48.560263], [54.358797, 48.560124], [54.358658, 48.559734], [54.358634, 48.559453], [54.358583, 48.559174], [54.358516, 48.558899], [54.358392, 48.558505], [54.358186, 48.557926], [54.357855, 48.556984], [54.357795, 48.556821], [54.357616, 48.556358], [54.357492, 48.556096], [54.357349, 48.55586], [54.357136, 48.555545], [54.356721, 48.554958], [54.356294, 48.554398], [54.356164, 48.554222], [54.355801, 48.553736], [54.355879, 48.553563], [54.355898, 48.553518], [54.356233, 48.552749], [54.356475, 48.552146], [54.356486, 48.551575], [54.356483, 48.551506], [54.356397, 48.549522]],
+                {"bubblingMouseEvents": true, "color": "blue", "dashArray": null, "dashOffset": null, "fill": false, "fillColor": "blue", "fillOpacity": 0.2, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "noClip": false, "opacity": 0.8, "smoothFactor": 1.0, "stroke": true, "weight": 5}
+            ).addTo(map_ae813b0672b78029f4dbd6318550eedd);
+        
+</script>
+</html>

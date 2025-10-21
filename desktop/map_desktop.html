@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html>
+<head>
+    
+    <meta http-equiv="content-type" content="text/html; charset=UTF-8" />
+    <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.3/dist/leaflet.js"></script>
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Leaflet.awesome-markers/2.0.2/leaflet.awesome-markers.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.3/dist/leaflet.css"/>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/css/bootstrap.min.css"/>
+    <link rel="stylesheet" href="https://netdna.bootstrapcdn.com/bootstrap/3.0.0/css/bootstrap-glyphicons.css"/>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.2.0/css/all.min.css"/>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/Leaflet.awesome-markers/2.0.2/leaflet.awesome-markers.css"/>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/python-visualization/folium/folium/templates/leaflet.awesome.rotate.min.css"/>
+    
+            <meta name="viewport" content="width=device-width,
+                initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+            <style>
+                #map_b832d7b792e95e40e03a421cc51e7be3 {
+                    position: relative;
+                    width: 100.0%;
+                    height: 100.0%;
+                    left: 0.0%;
+                    top: 0.0%;
+                }
+                .leaflet-container { font-size: 1rem; }
+            </style>
+
+            <style>html, body {
+                width: 100%;
+                height: 100%;
+                margin: 0;
+                padding: 0;
+            }
+            </style>
+
+            <style>#map {
+                position:absolute;
+                top:0;
+                bottom:0;
+                right:0;
+                left:0;
+                }
+            </style>
+
+            <script>
+                L_NO_TOUCH = false;
+                L_DISABLE_3D = false;
+            </script>
+
+        
+</head>
+<body>
+    
+    
+            <div class="folium-map" id="map_b832d7b792e95e40e03a421cc51e7be3" ></div>
+        
+</body>
+<script>
+    
+    
+            var map_b832d7b792e95e40e03a421cc51e7be3 = L.map(
+                "map_b832d7b792e95e40e03a421cc51e7be3",
+                {
+                    center: [55.751244, 37.618423],
+                    crs: L.CRS.EPSG3857,
+                    ...{
+  "zoom": 13,
+  "zoomControl": true,
+  "preferCanvas": false,
+}
+
+                }
+            );
+            L.control.scale().addTo(map_b832d7b792e95e40e03a421cc51e7be3);
+
+            
+
+        
+    
+            var tile_layer_6860686ba3ea4ab63ee5925a7487c050 = L.tileLayer(
+                "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+                {
+  "minZoom": 0,
+  "maxZoom": 19,
+  "maxNativeZoom": 19,
+  "noWrap": false,
+  "attribution": "\u0026copy; \u003ca href=\"https://www.openstreetmap.org/copyright\"\u003eOpenStreetMap\u003c/a\u003e contributors",
+  "subdomains": "abc",
+  "detectRetina": false,
+  "tms": false,
+  "opacity": 1,
+}
+
+            );
+        
+    
+            tile_layer_6860686ba3ea4ab63ee5925a7487c050.addTo(map_b832d7b792e95e40e03a421cc51e7be3);
+        
+    
+            var marker_b8b3afc784d637ba9f5c6ee3ea21ff8e = L.marker(
+                [55.75, 37.62],
+                {
+}
+            ).addTo(map_b832d7b792e95e40e03a421cc51e7be3);
+        
+    
+        var popup_e28758b2a67895455fb068a30d3dd869 = L.popup({
+  "maxWidth": "100%",
+});
+
+        
+            
+                var html_2b2f2ebc1382ae383cf0c404d9a0df3a = $(`<div id="html_2b2f2ebc1382ae383cf0c404d9a0df3a" style="width: 100.0%; height: 100.0%;">Москва</div>`)[0];
+                popup_e28758b2a67895455fb068a30d3dd869.setContent(html_2b2f2ebc1382ae383cf0c404d9a0df3a);
+            
+        
+
+        marker_b8b3afc784d637ba9f5c6ee3ea21ff8e.bindPopup(popup_e28758b2a67895455fb068a30d3dd869)
+        ;
+
+        
+    
+    
+            var marker_f046990808248bc8312ddee404b1c54b = L.marker(
+                [55.752, 37.615],
+                {
+}
+            ).addTo(map_b832d7b792e95e40e03a421cc51e7be3);
+        
+    
+        var popup_c1514b7ab3b054a4a218b6b4bdb39524 = L.popup({
+  "maxWidth": "100%",
+});
+
+        
+            
+                var html_be338ac46908de05d924f182cebb53cd = $(`<div id="html_be338ac46908de05d924f182cebb53cd" style="width: 100.0%; height: 100.0%;">Красная площадь</div>`)[0];
+                popup_c1514b7ab3b054a4a218b6b4bdb39524.setContent(html_be338ac46908de05d924f182cebb53cd);
+            
+        
+
+        marker_f046990808248bc8312ddee404b1c54b.bindPopup(popup_c1514b7ab3b054a4a218b6b4bdb39524)
+        ;
+
+        
+    
+</script>
+</html>
