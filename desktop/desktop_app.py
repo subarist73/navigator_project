@@ -21,22 +21,83 @@ def search_addresses(query):
         print("Ошибка поиска:", e)
         return []
 
-# ===== Построение маршрута через OSRM =====
+# ===== Построение маршрута =====
+import requests
+from tkinter import messagebox
+
+GRAPH_HOPPER_KEY = "ваш ключ"  # безопаснее подгрузить из .env
+
 def get_route(lat1, lon1, lat2, lon2, mode="driving"):
-    url = f"http://router.project-osrm.org/route/v1/{mode}/{lon1},{lat1};{lon2},{lat2}?overview=full&geometries=geojson"
-    try:
-        r = requests.get(url, timeout=10)
-        r.raise_for_status()
-        data = r.json()
-        if not data.get("routes"):
+    """
+    Универсальный выбор маршрутизатора:
+    - driving, bike → OSRM (router.project-osrm.org)
+    - foot → GraphHopper (через API)
+    Если GraphHopper не отвечает — fallback на OSRM.
+    """
+
+    # ==================== Пешком (GraphHopper) ====================
+    if mode == "foot":
+        url = "https://graphhopper.com/api/1/route"
+        params = [
+            ("point", f"{lat1},{lon1}"),
+            ("point", f"{lat2},{lon2}"),
+            ("vehicle", "foot"),
+            ("locale", "ru"),
+            ("calc_points", "true"),
+            ("points_encoded", "false"),
+            ("key", GRAPH_HOPPER_KEY)
+        ]
+        try:
+            r = requests.get(url, params=params, timeout=10)
+            r.raise_for_status()
+            data = r.json()
+
+            if "paths" not in data or not data["paths"]:
+                raise ValueError("GraphHopper не вернул маршруты")
+
+            path = data["paths"][0]
+            coords = [(lat, lon) for lon, lat in path["points"]["coordinates"]]
+            distance_m = path["distance"]
+            duration_s = path["time"] / 1000  # время в мс → сек
+            return coords, distance_m, duration_s
+
+        except Exception as e:
+            print("⚠️ GraphHopper недоступен:", e)
+            messagebox.showwarning(
+                "GraphHopper недоступен",
+                f"Не удалось получить пеший маршрут через GraphHopper.\n"
+                f"Будет использован OSRM."
+            )
+            # — падение на OSRM в качестве запасного варианта
+            mode = "foot_fallback"
+
+    # ==================== Вело / Авто (OSRM) ====================
+    if mode in ("driving", "bike", "foot_fallback"):
+        base_url = f"http://router.project-osrm.org/route/v1/{'car' if mode == 'driving' else 'bike'}"
+        # если fallback для пеших — использовать веломаршрут (OSRM не умеет “foot”)
+        if mode == "foot_fallback":
+            base_url = "http://router.project-osrm.org/route/v1/walking"
+
+        url = f"{base_url}/{lon1},{lat1};{lon2},{lat2}?overview=full&geometries=geojson"
+        try:
+            r = requests.get(url, timeout=10)
+            r.raise_for_status()
+            data = r.json()
+            if not data.get("routes"):
+                raise ValueError("OSRM не вернул маршруты")
+
+            coords = [(lat, lon) for lon, lat in data["routes"][0]["geometry"]["coordinates"]]
+            distance_m = data["routes"][0]["distance"]
+            duration_s = data["routes"][0]["duration"]
+            return coords, distance_m, duration_s
+
+        except Exception as e:
+            messagebox.showerror("Ошибка маршрута", f"OSRM недоступен: {e}")
             return None, None, None
-        coords = [(lat, lon) for lon, lat in data["routes"][0]["geometry"]["coordinates"]]
-        distance_m = data["routes"][0]["distance"]   # в метрах
-        duration_s = data["routes"][0]["duration"]   # в секундах
-        return coords, distance_m, duration_s
-    except Exception as e:
-        messagebox.showerror("Ошибка маршрута", str(e))
-        return None, None, None
+
+    # Если всё упало
+    return None, None, None
+
 
 # ===== Отображение маршрута на карте =====
 def show_map_with_route(point_a, point_b, name_a, name_b, mode="driving"):
@@ -89,7 +150,7 @@ class NavigatorApp(tk.Tk):
         self.listbox_b.pack(fill="x", padx=10)
         self.listbox_b.bind("<<ListboxSelect>>", self.select_address_b)
 
-        # Выбор типа маршрута
+        # Тип маршрута
         ttk.Label(self, text="Тип маршрута:").pack(anchor="w", padx=10, pady=5)
         self.mode_var = tk.StringVar(value="driving")
         mode_options = ["driving", "foot", "bike"]
@@ -99,11 +160,11 @@ class NavigatorApp(tk.Tk):
         # Кнопка построения маршрута
         ttk.Button(self, text="🚗 Построить маршрут", command=self.build_route).pack(pady=15)
 
-        # Вывод расстояния, времени и типа маршрута
+        # Информация о маршруте
         self.info_label = ttk.Label(self, text="", font=("Arial", 12), foreground="blue")
         self.info_label.pack(pady=10)
 
-    # --------- Подсказки для A ---------
+    # Подсказки для A
     def update_suggestions_a(self, event=None):
         query = self.entry_a.get().strip()
         self.listbox_a.delete(0, tk.END)
@@ -121,7 +182,7 @@ class NavigatorApp(tk.Tk):
         self.entry_a.insert(0, name)
         self.listbox_a.delete(0, tk.END)
 
-    # --------- Подсказки для B ---------
+    # Подсказки для B
     def update_suggestions_b(self, event=None):
         query = self.entry_b.get().strip()
         self.listbox_b.delete(0, tk.END)
@@ -139,7 +200,7 @@ class NavigatorApp(tk.Tk):
         self.entry_b.insert(0, name)
         self.listbox_b.delete(0, tk.END)
 
-    # --------- Построение маршрута ---------
+    # Построение маршрута
     def build_route(self):
         if not self.selected_a or not self.selected_b:
             messagebox.showwarning("Ошибка", "Выберите оба адреса (A и B)")
@@ -151,7 +212,6 @@ class NavigatorApp(tk.Tk):
         distance_m, duration_s = show_map_with_route(self.selected_a, self.selected_b, name_a, name_b, mode)
         self.deiconify()
 
-        # Отображение типа маршрута, расстояния и времени
         if distance_m is not None and duration_s is not None:
             distance_km = distance_m / 1000
             hours = int(duration_s // 3600)
