@@ -1,230 +1,270 @@
-import tkinter as tk
-from tkinter import ttk, messagebox
-import requests
+import sys
+import io
 import folium
-import webview
-import os
-
-# ===== Поиск адреса через Nominatim =====
-def search_addresses(query):
-    if not query or len(query) < 3:
-        return []
-    url = "https://nominatim.openstreetmap.org/search"
-    params = {"q": query, "format": "json", "addressdetails": 1, "limit": 5}
-    headers = {"User-Agent": "NavigatorApp/1.0 (support@example.com)"}
-    try:
-        r = requests.get(url, params=params, headers=headers, timeout=5)
-        r.raise_for_status()
-        data = r.json()
-        return [(d["display_name"], float(d["lat"]), float(d["lon"])) for d in data]
-    except Exception as e:
-        print("Ошибка поиска:", e)
-        return []
-
-# ===== Построение маршрута =====
 import requests
-from tkinter import messagebox
+from PySide6.QtWidgets import (
+    QApplication, QWidget, QVBoxLayout, QHBoxLayout,
+    QLineEdit, QLabel, QPushButton, QComboBox, QListWidget
+)
+from PySide6.QtWebEngineWidgets import QWebEngineView
+from PySide6.QtCore import QObject, Signal, Slot, QTimer
+from PySide6.QtWebChannel import QWebChannel
 
-GRAPH_HOPPER_KEY = "ваш ключ"  # безопаснее подгрузить из .env
+OSRM_URL = "http://router.project-osrm.org/route/v1"
+GRAPH_HOPPER_KEY = "d2a4b8ac-1bde-4a7c-8021-1d8a15f6ea14"
+NOMINATIM_URL = "https://nominatim.openstreetmap.org/search"
 
-def get_route(lat1, lon1, lat2, lon2, mode="driving"):
-    """
-    Универсальный выбор маршрутизатора:
-    - driving, bike → OSRM (router.project-osrm.org)
-    - foot → GraphHopper (через API)
-    Если GraphHopper не отвечает — fallback на OSRM.
-    """
+class MapBridge(QObject):
+    pointClicked = Signal(float, float)
+    @Slot(float, float)
+    def onMapClick(self, lat, lon):
+        self.pointClicked.emit(lat, lon)
 
-    # ==================== Пешком (GraphHopper) ====================
-    if mode == "foot":
-        url = "https://graphhopper.com/api/1/route"
-        params = [
-            ("point", f"{lat1},{lon1}"),
-            ("point", f"{lat2},{lon2}"),
-            ("vehicle", "foot"),
-            ("locale", "ru"),
-            ("calc_points", "true"),
-            ("points_encoded", "false"),
-            ("key", GRAPH_HOPPER_KEY)
-        ]
-        try:
-            r = requests.get(url, params=params, timeout=10)
-            r.raise_for_status()
-            data = r.json()
-
-            if "paths" not in data or not data["paths"]:
-                raise ValueError("GraphHopper не вернул маршруты")
-
-            path = data["paths"][0]
-            coords = [(lat, lon) for lon, lat in path["points"]["coordinates"]]
-            distance_m = path["distance"]
-            duration_s = path["time"] / 1000  # время в мс → сек
-            return coords, distance_m, duration_s
-
-        except Exception as e:
-            print("⚠️ GraphHopper недоступен:", e)
-            messagebox.showwarning(
-                "GraphHopper недоступен",
-                f"Не удалось получить пеший маршрут через GraphHopper.\n"
-                f"Будет использован OSRM."
-            )
-            # — падение на OSRM в качестве запасного варианта
-            mode = "foot_fallback"
-
-    # ==================== Вело / Авто (OSRM) ====================
-    if mode in ("driving", "bike", "foot_fallback"):
-        base_url = f"http://router.project-osrm.org/route/v1/{'car' if mode == 'driving' else 'bike'}"
-        # если fallback для пеших — использовать веломаршрут (OSRM не умеет “foot”)
-        if mode == "foot_fallback":
-            base_url = "http://router.project-osrm.org/route/v1/walking"
-
-        url = f"{base_url}/{lon1},{lat1};{lon2},{lat2}?overview=full&geometries=geojson"
-        try:
-            r = requests.get(url, timeout=10)
-            r.raise_for_status()
-            data = r.json()
-            if not data.get("routes"):
-                raise ValueError("OSRM не вернул маршруты")
-
-            coords = [(lat, lon) for lon, lat in data["routes"][0]["geometry"]["coordinates"]]
-            distance_m = data["routes"][0]["distance"]
-            duration_s = data["routes"][0]["duration"]
-            return coords, distance_m, duration_s
-
-        except Exception as e:
-            messagebox.showerror("Ошибка маршрута", f"OSRM недоступен: {e}")
-            return None, None, None
-
-    # Если всё упало
-    return None, None, None
-
-
-# ===== Отображение маршрута на карте =====
-def show_map_with_route(point_a, point_b, name_a, name_b, mode="driving"):
-    lat1, lon1 = point_a
-    lat2, lon2 = point_b
-    route, distance_m, duration_s = get_route(lat1, lon1, lat2, lon2, mode)
-    if not route:
-        return None, None
-
-    m = folium.Map(location=[(lat1 + lat2)/2, (lon1 + lon2)/2], zoom_start=13)
-    folium.Marker([lat1, lon1], popup=f"A: {name_a}", icon=folium.Icon(color='green')).add_to(m)
-    folium.Marker([lat2, lon2], popup=f"B: {name_b}", icon=folium.Icon(color='red')).add_to(m)
-    folium.PolyLine(route, color="blue", weight=5, opacity=0.8).add_to(m)
-
-    map_path = "map_route.html"
-    m.save(map_path)
-    abs_path = os.path.abspath(map_path)
-    webview.create_window("Маршрут", f"file:///{abs_path.replace(os.sep, '/')}", width=1000, height=700)
-    webview.start()
-
-    return distance_m, duration_s
-
-# ===== GUI =====
-class NavigatorApp(tk.Tk):
+class NavigatorApp(QWidget):
     def __init__(self):
         super().__init__()
-        self.title("Navigator 🚗🚶‍♂️🚴‍♂️")
-        self.geometry("600x600")
+        self.setWindowTitle("Navigator 🚗🚶‍♂️🚴‍♂️")
+        self.resize(1000, 700)
 
-        self.selected_a = None
-        self.selected_b = None
-        self.results_a = []
-        self.results_b = []
+        self.point_a = None
+        self.point_b = None
+        self.next_point = "A"
+        self.current_route_type = "driving"
 
-        # Поле A
-        ttk.Label(self, text="Откуда (A):").pack(anchor="w", padx=10, pady=5)
-        self.entry_a = ttk.Entry(self)
-        self.entry_a.pack(fill="x", padx=10)
-        self.entry_a.bind("<KeyRelease>", self.update_suggestions_a)
-        self.listbox_a = tk.Listbox(self, height=5)
-        self.listbox_a.pack(fill="x", padx=10)
-        self.listbox_a.bind("<<ListboxSelect>>", self.select_address_a)
+        self.search_results_a = []
+        self.search_results_b = []
 
-        # Поле B
-        ttk.Label(self, text="Куда (B):").pack(anchor="w", padx=10, pady=5)
-        self.entry_b = ttk.Entry(self)
-        self.entry_b.pack(fill="x", padx=10)
-        self.entry_b.bind("<KeyRelease>", self.update_suggestions_b)
-        self.listbox_b = tk.Listbox(self, height=5)
-        self.listbox_b.pack(fill="x", padx=10)
-        self.listbox_b.bind("<<ListboxSelect>>", self.select_address_b)
+        # Основной layout
+        self.layout = QVBoxLayout(self)
 
-        # Тип маршрута
-        ttk.Label(self, text="Тип маршрута:").pack(anchor="w", padx=10, pady=5)
-        self.mode_var = tk.StringVar(value="driving")
-        mode_options = ["driving", "foot", "bike"]
-        self.mode_menu = ttk.OptionMenu(self, self.mode_var, mode_options[0], *mode_options)
-        self.mode_menu.pack(padx=10, pady=5)
+        # --- Карта ---
+        self.map_view = QWebEngineView()
+        self.layout.addWidget(self.map_view, stretch=4)
 
-        # Кнопка построения маршрута
-        ttk.Button(self, text="🚗 Построить маршрут", command=self.build_route).pack(pady=15)
+        # --- Горизонтальный блок для полей и кнопок ---
+        controls_layout = QHBoxLayout()
 
-        # Информация о маршруте
-        self.info_label = ttk.Label(self, text="", font=("Arial", 12), foreground="blue")
-        self.info_label.pack(pady=10)
+        # Колонка A
+        col_a = QVBoxLayout()
+        col_a.addWidget(QLabel("Точка A:"))
+        self.entry_a = QLineEdit()
+        col_a.addWidget(self.entry_a)
+        self.list_a = QListWidget()
+        col_a.addWidget(self.list_a)
+        controls_layout.addLayout(col_a)
 
-    # Подсказки для A
-    def update_suggestions_a(self, event=None):
-        query = self.entry_a.get().strip()
-        self.listbox_a.delete(0, tk.END)
-        self.results_a = search_addresses(query)
-        for name, lat, lon in self.results_a:
-            self.listbox_a.insert(tk.END, name)
+        # Колонка B
+        col_b = QVBoxLayout()
+        col_b.addWidget(QLabel("Точка B:"))
+        self.entry_b = QLineEdit()
+        col_b.addWidget(self.entry_b)
+        self.list_b = QListWidget()
+        col_b.addWidget(self.list_b)
+        controls_layout.addLayout(col_b)
 
-    def select_address_a(self, event=None):
-        if not self.listbox_a.curselection():
+        # Колонка действий
+        col_actions = QVBoxLayout()
+        col_actions.addWidget(QLabel("Тип маршрута:"))
+        self.route_type_combo = QComboBox()
+        self.route_type_combo.addItems(["driving", "foot", "bike"])
+        col_actions.addWidget(self.route_type_combo)
+
+        self.btn_route = QPushButton("Построить маршрут")
+        col_actions.addWidget(self.btn_route)
+        self.btn_reset = QPushButton("Сбросить точки")
+        col_actions.addWidget(self.btn_reset)
+
+        self.info_label = QLabel("Кликните на карте или используйте поиск для выбора точек")
+        col_actions.addWidget(self.info_label)
+        col_actions.addStretch()
+
+        controls_layout.addLayout(col_actions)
+
+        self.layout.addLayout(controls_layout)
+
+        # ===================== WebChannel =====================
+        self.channel = QWebChannel()
+        self.bridge = MapBridge()
+        self.channel.registerObject("bridge", self.bridge)
+        self.map_view.page().setWebChannel(self.channel)
+        self.bridge.pointClicked.connect(self.handle_map_click)
+
+        # ===================== Таймер поиска =====================
+        self.search_timer = QTimer()
+        self.search_timer.setSingleShot(True)
+        self.search_timer.timeout.connect(self.perform_search)
+        self.pending_field = None
+
+        # ===================== События =====================
+        self.entry_a.textChanged.connect(lambda: self.on_text_changed(self.entry_a, "a"))
+        self.entry_b.textChanged.connect(lambda: self.on_text_changed(self.entry_b, "b"))
+        self.list_a.itemClicked.connect(lambda item: self.select_point(item, "a"))
+        self.list_b.itemClicked.connect(lambda item: self.select_point(item, "b"))
+        self.route_type_combo.currentTextChanged.connect(self.change_route_type)
+        self.btn_route.clicked.connect(self.build_route)
+        self.btn_reset.clicked.connect(self.reset_points)
+
+        self.update_map()
+
+    # ===================== Методы =====================
+    def change_route_type(self, text):
+        self.current_route_type = text
+        if self.point_a and self.point_b:
+            self.build_route()
+
+    def on_text_changed(self, entry, field):
+        text = entry.text().strip()
+        self.pending_field = field
+        self.search_timer.stop()
+        if len(text) >= 3:
+            self.search_timer.start(500)
+
+    def perform_search(self):
+        field = self.pending_field
+        entry = self.entry_a if field == "a" else self.entry_b
+        list_widget = self.list_a if field == "a" else self.list_b
+        query = entry.text().strip()
+        if len(query) < 3:
+            list_widget.clear()
             return
-        idx = self.listbox_a.curselection()[0]
-        name, lat, lon = self.results_a[idx]
-        self.selected_a = (lat, lon)
-        self.entry_a.delete(0, tk.END)
-        self.entry_a.insert(0, name)
-        self.listbox_a.delete(0, tk.END)
+        headers = {"User-Agent": "NavigatorApp/1.0"}
+        params = {"q": query, "format": "json", "addressdetails": 1, "limit": 5}
+        try:
+            r = requests.get(NOMINATIM_URL, params=params, headers=headers, timeout=5)
+            r.raise_for_status()
+            data = r.json()
+            results = [(d["display_name"], float(d["lat"]), float(d["lon"])) for d in data]
+            if field == "a":
+                self.search_results_a = results
+            else:
+                self.search_results_b = results
+            list_widget.clear()
+            for name, _, _ in results:
+                list_widget.addItem(name)
+        except Exception as e:
+            list_widget.clear()
+            print("Ошибка поиска:", e)
 
-    # Подсказки для B
-    def update_suggestions_b(self, event=None):
-        query = self.entry_b.get().strip()
-        self.listbox_b.delete(0, tk.END)
-        self.results_b = search_addresses(query)
-        for name, lat, lon in self.results_b:
-            self.listbox_b.insert(tk.END, name)
-
-    def select_address_b(self, event=None):
-        if not self.listbox_b.curselection():
-            return
-        idx = self.listbox_b.curselection()[0]
-        name, lat, lon = self.results_b[idx]
-        self.selected_b = (lat, lon)
-        self.entry_b.delete(0, tk.END)
-        self.entry_b.insert(0, name)
-        self.listbox_b.delete(0, tk.END)
-
-    # Построение маршрута
-    def build_route(self):
-        if not self.selected_a or not self.selected_b:
-            messagebox.showwarning("Ошибка", "Выберите оба адреса (A и B)")
-            return
-        name_a = self.entry_a.get()
-        name_b = self.entry_b.get()
-        mode = self.mode_var.get()
-        self.withdraw()
-        distance_m, duration_s = show_map_with_route(self.selected_a, self.selected_b, name_a, name_b, mode)
-        self.deiconify()
-
-        if distance_m is not None and duration_s is not None:
-            distance_km = distance_m / 1000
-            hours = int(duration_s // 3600)
-            minutes = int((duration_s % 3600) // 60)
-            mode_texts = {"driving": "На машине", "foot": "Пешком", "bike": "На велосипеде"}
-            mode_text = mode_texts.get(mode, mode)
-            self.info_label.config(
-                text=f"Тип маршрута: {mode_text} | Расстояние: {distance_km:.2f} км | Время: {hours} ч {minutes} мин"
-            )
+    def select_point(self, item, field):
+        name = item.text()
+        if field == "a":
+            coords = next(((lat, lon) for n, lat, lon in self.search_results_a if n == name), None)
+            self.point_a = coords
+            self.entry_a.setText(name)
+            self.list_a.clear()
+            self.next_point = "B"
         else:
-            self.info_label.config(text="Маршрут не найден")
+            coords = next(((lat, lon) for n, lat, lon in self.search_results_b if n == name), None)
+            self.point_b = coords
+            self.entry_b.setText(name)
+            self.list_b.clear()
+            self.next_point = None
+            self.build_route()
+        self.update_map()
 
-# ===== Запуск приложения =====
+    def handle_map_click(self, lat, lon):
+        if self.next_point == "A":
+            self.point_a = (lat, lon)
+            self.entry_a.setText(f"{lat:.6f}, {lon:.6f}")
+            self.info_label.setText("Точка A выбрана. Выберите точку B")
+            self.next_point = "B"
+        elif self.next_point == "B":
+            self.point_b = (lat, lon)
+            self.entry_b.setText(f"{lat:.6f}, {lon:.6f}")
+            self.info_label.setText("Точка B выбрана. Маршрут строится автоматически")
+            self.next_point = None
+            self.build_route()
+        self.update_map()
+
+    def reset_points(self):
+        self.point_a = None
+        self.point_b = None
+        self.entry_a.clear()
+        self.entry_b.clear()
+        self.list_a.clear()
+        self.list_b.clear()
+        self.next_point = "A"
+        self.info_label.setText("Кликните на карте или используйте поиск для выбора точек")
+        self.update_map()
+
+    def get_route(self, lat1, lon1, lat2, lon2):
+        if self.current_route_type == "foot":
+            url = "https://graphhopper.com/api/1/route"
+            params = {
+                "point": [f"{lat1},{lon1}", f"{lat2},{lon2}"],
+                "vehicle": "foot",
+                "locale": "ru",
+                "calc_points": "true",
+                "points_encoded": "false",
+                "key": GRAPH_HOPPER_KEY
+            }
+            try:
+                r = requests.get(url, params=params, timeout=10)
+                r.raise_for_status()
+                data = r.json()
+                path = data["paths"][0]
+                coords = [(lat, lon) for lon, lat in path["points"]["coordinates"]]
+                return coords
+            except Exception as e:
+                print("GraphHopper error:", e)
+                mode = "foot"
+        else:
+            mode = "car" if self.current_route_type == "driving" else "bike"
+
+        url = f"{OSRM_URL}/{mode}/{lon1},{lat1};{lon2},{lat2}?overview=full&geometries=geojson"
+        try:
+            r = requests.get(url, timeout=10).json()
+            route = r["routes"][0]
+            coords = [(lat, lon) for lon, lat in route["geometry"]["coordinates"]]
+            return coords
+        except Exception as e:
+            print("OSRM error:", e)
+            return None
+
+    def build_route(self):
+        if self.point_a and self.point_b:
+            coords = self.get_route(*self.point_a, *self.point_b)
+            self.update_map(route_coords=coords)
+
+    def update_map(self, route_coords=None):
+        center = self.point_a or (55.751244, 37.618423)
+        m = folium.Map(location=center, zoom_start=12)
+        if self.point_a:
+            folium.Marker(self.point_a, popup="A", icon=folium.Icon(color="green")).add_to(m)
+        if self.point_b:
+            folium.Marker(self.point_b, popup="B", icon=folium.Icon(color="red")).add_to(m)
+        if route_coords:
+            folium.PolyLine(route_coords, color="blue", weight=5).add_to(m)
+
+        data = io.BytesIO()
+        m.save(data, close_file=False)
+        html = data.getvalue().decode()
+
+        import re
+        map_var = "map"
+        mobj = re.search(r"var (map_[a-z0-9]+) = L.map", html)
+        if mobj:
+            map_var = mobj.group(1)
+
+        inject = f"""
+<script src="qrc:///qtwebchannel/qwebchannel.js"></script>
+<script>
+document.addEventListener("DOMContentLoaded", function() {{
+    var mapObj = window.{map_var};
+    new QWebChannel(qt.webChannelTransport, function(channel) {{
+        window.bridge = channel.objects.bridge;
+        mapObj.on('click', function(e) {{
+            window.bridge.onMapClick(e.latlng.lat, e.latlng.lng);
+        }});
+    }});
+}});
+</script>
+"""
+        html = html.replace("</body>", inject + "</body>")
+        self.map_view.setHtml(html)
+
 if __name__ == "__main__":
-    app = NavigatorApp()
-    app.mainloop()
+    app = QApplication(sys.argv)
+    win = NavigatorApp()
+    win.show()
+    sys.exit(app.exec())
